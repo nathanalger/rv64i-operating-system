@@ -67,6 +67,9 @@ clean:
 run: $(KERNEL_ELF)
 	qemu-system-riscv64 -machine virt -cpu rv64 -m 128M -nographic -bios none -kernel $(KERNEL_ELF)
 
+run-custom: $(BIN_FILE)
+	rv64i $(BIN_FILE) --system opensbi --memory 12000
+
 run-bin: $(BIN_FILE)
 	qemu-system-riscv64 -machine virt -cpu rv64 -m 128M -nographic -bios none -kernel $(BIN_FILE)
 
