@@ -9,20 +9,25 @@ ASFLAGS  = -g -Wall -Wextra -ffreestanding -march=rv64imac -mabi=lp64 -mcmodel=m
 LDFLAGS  = -nostdlib -march=rv64imac -mabi=lp64 -mcmodel=medany -msmall-data-limit=0 -T linker/kernel.ld -Wl,-Map=build/kernel.map
 
 OBJCOPY = riscv-none-elf-objcopy
-BIN_FILE = $(BUILD_DIR)/kernel.bin
 
 BUILD_DIR = build
-INCLUDES  = -Iinclude
+INCLUDES  = -Iinclude -Iinclude/arch/riscv -Iinclude/utility -Ilib/libfdt -Iinclude/kernel
 
 KERNEL_ELF = $(BUILD_DIR)/kernel.elf
+BIN_FILE   = $(BUILD_DIR)/kernel.bin
 
-CPP_SRCS = $(wildcard src/kernel/*.cpp)
-ASM_SRCS = $(wildcard src/arch/riscv/*.S)
+rwildcard = $(foreach d,$(wildcard $1/*),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
 
-CPP_OBJS = $(patsubst src/kernel/%.cpp,$(BUILD_DIR)/kernel/%.o,$(CPP_SRCS))
-ASM_OBJS = $(patsubst src/arch/riscv/%.S,$(BUILD_DIR)/arch/riscv/%.o,$(ASM_SRCS))
+CPP_SRCS := $(call rwildcard,src,*.cpp)
+ASM_SRCS := $(call rwildcard,src,*.S)
 
-OBJS = $(CPP_OBJS) $(ASM_OBJS)
+FDT_SRCS := $(call rwildcard,lib/libfdt,*.c)
+FDT_OBJS := $(patsubst lib/libfdt/%.c,$(BUILD_DIR)/libfdt/%.o,$(FDT_SRCS))
+
+CPP_OBJS := $(patsubst src/%.cpp,$(BUILD_DIR)/%.o,$(CPP_SRCS))
+ASM_OBJS := $(patsubst src/%.S,$(BUILD_DIR)/%.o,$(ASM_SRCS))
+
+OBJS = $(CPP_OBJS) $(ASM_OBJS) $(FDT_OBJS)
 
 all: build
 	@echo Done!
@@ -35,22 +40,36 @@ $(BIN_FILE): $(KERNEL_ELF)
 
 setup:
 	@if not exist "$(BUILD_DIR)" mkdir "$(BUILD_DIR)"
-	@if not exist "$(BUILD_DIR)/kernel" mkdir "$(BUILD_DIR)/kernel"
-	@if not exist "$(BUILD_DIR)/arch" mkdir "$(BUILD_DIR)/arch"
-	@if not exist "$(BUILD_DIR)/arch/riscv" mkdir "$(BUILD_DIR)/arch/riscv"
 
-$(BUILD_DIR)/kernel/%.o: src/kernel/%.cpp
+$(BUILD_DIR)/%.o: src/%.cpp
 	@echo Compiling C++ $<...
+	@if not exist "$(dir $@)" mkdir "$(dir $@)"
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
-$(BUILD_DIR)/arch/riscv/%.o: src/arch/riscv/%.S
+$(BUILD_DIR)/%.o: src/%.S
 	@echo Assembling $<...
+	@if not exist "$(dir $@)" mkdir "$(dir $@)"
 	$(AS) $(ASFLAGS) $(INCLUDES) -c $< -o $@
 
 $(KERNEL_ELF): $(OBJS)
 	@echo Linking kernel...
 	$(LD) $(OBJS) $(LDFLAGS) -o $@
 
+$(BUILD_DIR)/libfdt/%.o: lib/libfdt/%.c
+	@echo Compiling FDT $<...
+	@if not exist "$(dir $@)" mkdir "$(dir $@)"
+	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+
 clean:
 	@echo Cleaning build output...
 	@if exist "$(BUILD_DIR)" rmdir /s /q "$(BUILD_DIR)"
+
+run: $(KERNEL_ELF)
+	qemu-system-riscv64 -machine virt -cpu rv64 -m 128M -nographic -bios none -kernel $(KERNEL_ELF)
+
+run-bin: $(BIN_FILE)
+	qemu-system-riscv64 -machine virt -cpu rv64 -m 128M -nographic -bios none -kernel $(BIN_FILE)
+
+print-src:
+	@echo CPP_SRCS=$(CPP_SRCS)
+	@echo ASM_SRCS=$(ASM_SRCS)
