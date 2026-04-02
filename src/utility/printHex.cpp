@@ -1,7 +1,8 @@
 #include "UART.hpp"
+#include "PrintHex.hpp"
 #include <cstdint>
 
-void print_hex(uint64_t value)
+void Utility::print_hex(uint64_t value)
 {
     const char* hex = "0123456789ABCDEF";
 

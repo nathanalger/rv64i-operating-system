@@ -1,17 +1,26 @@
 #include <stdint.h>
 #include "UART.hpp"
-#include "printHex.hpp"
 #include "DTB.hpp"
 #include "panic.hpp"
 #include "PlatformInfo.hpp"
+#include "Paging.hpp"
+#include "PrintHex.hpp"
+#include "CSR.hpp"
+#include "PhysicalPageAllocator.hpp"
 
-extern "C" void kernel_main(const void* dtb)
+extern "C" void kernel_main(const void *dtb)
 {
-    PlatformInfo _platform_info = {};
-    
-    if(!(platform_info_init(_platform_info, dtb))) {
+    PlatformInfo platform = {};
+    if (!platform_info_init(platform, dtb))
         panic("Failed to initialize platform information.");
-    }
 
-    panic("Reached end of execution!");
+    PhysicalPageAllocator allocator = {};
+    if (!physical_page_allocator_init(allocator, platform))
+        panic("Failed to initialize physical page allocator.");
+
+    PageTable *root = nullptr;
+    if (!paging_init(root, allocator, platform))
+        panic("Failed to initialize paging.");
+
+    panic("Done.");
 }

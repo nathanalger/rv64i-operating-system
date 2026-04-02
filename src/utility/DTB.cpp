@@ -16,8 +16,8 @@ extern "C" char _kernel_start[];
 static uint32_t be32_to_cpu(uint32_t value)
 {
     return ((value & 0x000000FFu) << 24) |
-           ((value & 0x0000FF00u) << 8)  |
-           ((value & 0x00FF0000u) >> 8)  |
+           ((value & 0x0000FF00u) << 8) |
+           ((value & 0x00FF0000u) >> 8) |
            ((value & 0xFF000000u) >> 24);
 }
 
@@ -37,8 +37,8 @@ struct DtbHeader
 
 // End Helpers
 
-static const void* g_dtb = nullptr;
-static uint64_t read_cells(const fdt32_t* cells, int count)
+static const void *g_dtb = nullptr;
+static uint64_t read_cells(const fdt32_t *cells, int count)
 {
     uint64_t value = 0;
     for (int i = 0; i < count; ++i)
@@ -75,7 +75,7 @@ static int get_root_size_cells()
     int value = fdt_size_cells(g_dtb, root);
     return (value > 0) ? value : -1;
 }
-bool dtb_init(const void* dtb)
+bool dtb_init(const void *dtb)
 {
     if (dtb == nullptr)
     {
@@ -90,11 +90,11 @@ bool dtb_init(const void* dtb)
     g_dtb = dtb;
     return true;
 }
-const void* dtb_raw()
+const void *dtb_raw()
 {
     return g_dtb;
 }
-bool dtb_get_memory_range(uint64_t& base_out, uint64_t& size_out)
+bool dtb_get_memory_range(uint64_t &base_out, uint64_t &size_out)
 {
     base_out = 0;
     size_out = 0;
@@ -114,8 +114,8 @@ bool dtb_get_memory_range(uint64_t& base_out, uint64_t& size_out)
          node = fdt_next_node(g_dtb, node, nullptr))
     {
         int len = 0;
-        const char* device_type =
-            (const char*)fdt_getprop(g_dtb, node, "device_type", &len);
+        const char *device_type =
+            (const char *)fdt_getprop(g_dtb, node, "device_type", &len);
         if (device_type != nullptr && len >= 6)
         {
             if (device_type[0] == 'm' &&
@@ -135,8 +135,8 @@ bool dtb_get_memory_range(uint64_t& base_out, uint64_t& size_out)
         return false;
     }
     int reg_len = 0;
-    const fdt32_t* reg =
-        (const fdt32_t*)fdt_getprop(g_dtb, memory_node, "reg", &reg_len);
+    const fdt32_t *reg =
+        (const fdt32_t *)fdt_getprop(g_dtb, memory_node, "reg", &reg_len);
     if (reg == nullptr)
     {
         return false;
@@ -151,7 +151,7 @@ bool dtb_get_memory_range(uint64_t& base_out, uint64_t& size_out)
     size_out = read_cells(reg + addr_cells, size_cells);
     return true;
 }
-bool dtb_get_uart_base(uint64_t& uart_base_out)
+bool dtb_get_uart_base(uint64_t &uart_base_out)
 {
     uart_base_out = 0;
     if (g_dtb == nullptr)
@@ -168,8 +168,8 @@ bool dtb_get_uart_base(uint64_t& uart_base_out)
          node = fdt_next_node(g_dtb, node, nullptr))
     {
         int compat_len = 0;
-        const char* compatible =
-            (const char*)fdt_getprop(g_dtb, node, "compatible", &compat_len);
+        const char *compatible =
+            (const char *)fdt_getprop(g_dtb, node, "compatible", &compat_len);
         if (compatible == nullptr || compat_len <= 0)
         {
             continue;
@@ -178,7 +178,7 @@ bool dtb_get_uart_base(uint64_t& uart_base_out)
         int i = 0;
         while (i < compat_len)
         {
-            const char* s = compatible + i;
+            const char *s = compatible + i;
             bool matched_ns16550 =
                 s[0] == 'n' && s[1] == 's' && s[2] == '1' && s[3] == '6' &&
                 s[4] == '5' && s[5] == '5' && s[6] == '0';
@@ -200,8 +200,8 @@ bool dtb_get_uart_base(uint64_t& uart_base_out)
             continue;
         }
         int reg_len = 0;
-        const fdt32_t* reg =
-            (const fdt32_t*)fdt_getprop(g_dtb, node, "reg", &reg_len);
+        const fdt32_t *reg =
+            (const fdt32_t *)fdt_getprop(g_dtb, node, "reg", &reg_len);
         if (reg == nullptr)
         {
             continue;
@@ -215,11 +215,11 @@ bool dtb_get_uart_base(uint64_t& uart_base_out)
     }
     return false;
 }
-bool platform_info_init(PlatformInfo& platform, const void* dtb)
+bool platform_info_init(PlatformInfo &platform, const void *dtb)
 {
     platform.dtb_addr = (uint64_t)dtb;
 
-    const DtbHeader* header = reinterpret_cast<const DtbHeader*>(dtb);
+    const DtbHeader *header = reinterpret_cast<const DtbHeader *>(dtb);
     platform.dtb_size = be32_to_cpu(header->totalsize);
     platform.dtb_end = platform.dtb_addr + platform.dtb_size;
 

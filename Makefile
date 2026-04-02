@@ -3,10 +3,10 @@ CC  = riscv-none-elf-gcc
 AS  = riscv-none-elf-gcc
 LD  = riscv-none-elf-g++
 
-CXXFLAGS = -g -Wall -Wextra -std=c++20 -ffreestanding -fno-exceptions -fno-rtti -fno-use-cxa-atexit -fno-threadsafe-statics -march=rv64imac -mabi=lp64 -mcmodel=medany -msmall-data-limit=0
-CFLAGS   = -g -Wall -Wextra -ffreestanding -march=rv64imac -mabi=lp64 -mcmodel=medany -msmall-data-limit=0
-ASFLAGS  = -g -Wall -Wextra -ffreestanding -march=rv64imac -mabi=lp64 -mcmodel=medany -msmall-data-limit=0
-LDFLAGS  = -nostdlib -march=rv64imac -mabi=lp64 -mcmodel=medany -msmall-data-limit=0 -T linker/kernel.ld -Wl,-Map=build/kernel.map
+CXXFLAGS = -g -Wall -Wextra -std=c++20 -ffreestanding -fno-exceptions -fno-rtti -fno-use-cxa-atexit -fno-threadsafe-statics -march=rv64imac_zicsr -mabi=lp64 -mcmodel=medany -msmall-data-limit=0
+CFLAGS   = -g -Wall -Wextra -ffreestanding -march=rv64imac_zicsr -mabi=lp64 -mcmodel=medany -msmall-data-limit=0
+ASFLAGS  = -g -Wall -Wextra -ffreestanding -march=rv64imac_zicsr -mabi=lp64 -mcmodel=medany -msmall-data-limit=0
+LDFLAGS  = -nostdlib -march=rv64imac_zicsr -mabi=lp64 -mcmodel=medany -msmall-data-limit=0 -T linker/kernel.ld -Wl,-Map=build/kernel.map
 
 OBJCOPY = riscv-none-elf-objcopy
 
