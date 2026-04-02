@@ -5,7 +5,7 @@ I am a Computer Engineering student at Michigan Technological University writing
 
 This is designed to be compatible with another project of mine, the [RV64I System Simulator](https://github.com/nathanalger/rv64i-simulator).
 
-## Status
+## Capabilities
 
 This project is actively in development, so many features may be broken or unimplemented. Here is a general list of functional aspects of this project.
 
