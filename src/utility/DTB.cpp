@@ -1,10 +1,41 @@
 #include "utility/DTB.hpp"
-
+#include "utility/PlatformInfo.hpp"
+#include "panic.hpp"
 extern "C"
 {
 #include <libfdt.h>
 }
 
+extern "C" char __bss_start[];
+extern "C" char __bss_end[];
+extern "C" char _kernel_end[];
+extern "C" char _kernel_start[];
+
+// Helpers
+
+static uint32_t be32_to_cpu(uint32_t value)
+{
+    return ((value & 0x000000FFu) << 24) |
+           ((value & 0x0000FF00u) << 8)  |
+           ((value & 0x00FF0000u) >> 8)  |
+           ((value & 0xFF000000u) >> 24);
+}
+
+struct DtbHeader
+{
+    uint32_t magic;
+    uint32_t totalsize;
+    uint32_t off_dt_struct;
+    uint32_t off_dt_strings;
+    uint32_t off_mem_rsvmap;
+    uint32_t version;
+    uint32_t last_comp_version;
+    uint32_t boot_cpuid_phys;
+    uint32_t size_dt_strings;
+    uint32_t size_dt_struct;
+};
+
+// End Helpers
 
 static const void* g_dtb = nullptr;
 static uint64_t read_cells(const fdt32_t* cells, int count)
@@ -183,4 +214,28 @@ bool dtb_get_uart_base(uint64_t& uart_base_out)
         return true;
     }
     return false;
+}
+bool platform_info_init(PlatformInfo& platform, const void* dtb)
+{
+    platform.dtb_addr = (uint64_t)dtb;
+
+    const DtbHeader* header = reinterpret_cast<const DtbHeader*>(dtb);
+    platform.dtb_size = be32_to_cpu(header->totalsize);
+    platform.dtb_end = platform.dtb_addr + platform.dtb_size;
+
+    if (!dtb_init(dtb))
+        return false;
+
+    if (!dtb_get_uart_base(platform.uart_base))
+        return false;
+
+    if (!dtb_get_memory_range(platform.ram_base, platform.ram_size))
+        return false;
+
+    platform.kernel_start = (uint64_t)_kernel_start;
+    platform.kernel_end = (uint64_t)_kernel_end;
+    platform.bss_start = (uint64_t)__bss_start;
+    platform.bss_end = (uint64_t)__bss_end;
+
+    return true;
 }

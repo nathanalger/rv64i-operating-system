@@ -6,6 +6,7 @@ SECTIONS
 
     .text : ALIGN(4)
     {
+        _kernel_start = .;
         *(.text.init)
         *(.text*)
     }

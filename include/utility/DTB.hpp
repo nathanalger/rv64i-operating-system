@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include "PlatformInfo.hpp"
 
 /**
  * Initialize the DTB utility with the raw pointer passed to the kernel.
@@ -30,3 +31,8 @@ bool dtb_get_memory_range(uint64_t& base_out, uint64_t& size_out);
  * Returns true on success.
  */
 bool dtb_get_uart_base(uint64_t& uart_base_out);
+/**
+ * Initialize the platform information from the device tree and load it into 
+ * platform parameter. Returns true on success, false on failure.
+ */
+bool platform_info_init(PlatformInfo& platform, const void* dtb);
