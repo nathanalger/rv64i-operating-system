@@ -1,9 +1,10 @@
 # rv64i-operating-system
 This is a simple operating system meant to run on RISC-V 64-bit based processors. Currently, it is capable of parsing a device tree and printing to the UART.
-
-I am a Computer Engineering student at Michigan Technological University writing this as a personal project to help me learn operating system development, as it is a personal interest of mine.
-
 This is designed to be compatible with another project of mine, the [RV64I System Simulator](https://github.com/nathanalger/rv64i-simulator).
+
+## Background
+
+This project is being developed as a personal learning experience in operating system design by a Computer Engineering student at Michigan Technological University.
 
 ## Capabilities
 
