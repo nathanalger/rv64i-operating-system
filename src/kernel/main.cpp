@@ -6,6 +6,7 @@
 #include "Paging.hpp"
 #include "PrintHex.hpp"
 #include "CSR.hpp"
+#include "Traps.hpp"
 #include "PhysicalPageAllocator.hpp"
 
 extern "C" void kernel_main(const void *dtb)
@@ -21,6 +22,12 @@ extern "C" void kernel_main(const void *dtb)
     PageTable *root = nullptr;
     if (!paging_init(root, allocator, platform))
         panic("Failed to initialize paging.");
+
+    traps_init();
+
+    uart_puts("Before page fault\n");
+    *(volatile uint64_t *)0x12345000ULL = 1;
+    uart_puts("After page fault\n");
 
     panic("Done.");
 }

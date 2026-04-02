@@ -30,7 +30,6 @@ uint64_t sv39_vpn0(uint64_t virtual_address)
 
 uint64_t pte_from_phys_addr(uint64_t physical_address, uint64_t flags)
 {
-   // Bits 53:10 store the physical page number.
    uint64_t ppn = physical_address >> 12;
    return (ppn << 10) | flags;
 }
