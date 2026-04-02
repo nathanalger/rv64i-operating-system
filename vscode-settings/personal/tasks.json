@@ -5,7 +5,7 @@
             "label": "build",
             "type": "shell",
             "command": "mingw32-make",
-            "args": ["clean", "build"],
+            "args": ["clean", "build", "setup", "run-custom"],
             "group": {
                 "kind": "build",
                 "isDefault": true

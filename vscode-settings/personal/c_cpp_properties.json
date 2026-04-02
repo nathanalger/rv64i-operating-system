@@ -3,7 +3,12 @@
         {
             "name": "Win32",
             "includePath": [
-                "${workspaceFolder}/include"
+                "${workspaceFolder}/include",
+                "${workspaceFolder}/include/arch/riscv",
+                "${workspaceFolder}/include/kernel",
+                "${workspaceFolder}/include/utility",
+
+                "${workspaceFolder}/lib/libfdt"
             ],
             "defines": [
                 "_DEBUG",
