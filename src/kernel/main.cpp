@@ -11,6 +11,7 @@
 
 extern "C" void kernel_main(const void *dtb)
 {
+    // Machine Mode Setup
     PlatformInfo platform = {};
     if (!platform_info_init(platform, dtb))
         panic("Failed to initialize platform information.");
@@ -23,11 +24,11 @@ extern "C" void kernel_main(const void *dtb)
     if (!paging_init(root, allocator, platform))
         panic("Failed to initialize paging.");
 
-    traps_init();
+    // Prepare drop to supervisor mode
+    machine_traps_init();
+    delegate_supervisor_exceptions();
+    pmp_init_allow_all();
+    enter_supervisor_mode();
 
-    uart_puts("Before page fault\n");
-    *(volatile uint64_t *)0x12345000ULL = 1;
-    uart_puts("After page fault\n");
-
-    panic("Done.");
+    panic("Unexpectedly reached end of execution");
 }

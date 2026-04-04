@@ -35,13 +35,17 @@ struct TrapFrame
    uint64_t t5;
    uint64_t t6;
 
-   uint64_t sepc;
-   uint64_t sstatus;
-   uint64_t scause;
-   uint64_t stval;
+   uint64_t epc;
+   uint64_t status;
+   uint64_t cause;
+   uint64_t tval;
 };
 
-extern "C" void supervisor_trap_handler(TrapFrame *frame);
 extern "C" void supervisor_trap_entry();
+extern "C" void machine_trap_entry();
 
-void traps_init();
+extern "C" void supervisor_trap_handler(TrapFrame *frame);
+extern "C" void machine_trap_handler(TrapFrame *frame);
+
+void machine_traps_init();
+void supervisor_traps_init();

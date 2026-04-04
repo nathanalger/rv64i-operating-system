@@ -244,9 +244,9 @@ bool paging_init(PageTable *&root,
       return false;
    }
 
-   uint64_t satp_value = Utility::make_satp_sv39((uint64_t)root);
-   Utility::csr_write_satp(satp_value);
-   Utility::sfence_vma();
+   uint64_t satp_value = make_satp_sv39((uint64_t)root);
+   csr_write_satp(satp_value);
+   sfence_vma();
 
    return true;
 }
