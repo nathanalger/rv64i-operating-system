@@ -39,10 +39,10 @@ Below is a list of some documentation of the libraries utilized to help make thi
 
 #### Kernel
 
-- [Main](docs/src/kernel/main.md)
+- [Kernel](docs/src/kernel/Kernel.md)
 
 #### Utilities
 
 - [DTB](docs/src/utility/DTB.md)
-- [Memory](docs/src/utility/memory.md)
-- [PrintHex](docs/src/utility/printHex.md)
+- [Memory](docs/src/utility/Memory.md)
+- [PrintHex](docs/src/utility/PrintHex.md)
