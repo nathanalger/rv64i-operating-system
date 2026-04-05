@@ -3,6 +3,7 @@
 #include "UART.hpp"
 #include "Panic.hpp"
 #include "PrintHex.hpp"
+#include "TrapHandler.hpp"
 
 extern "C" char _supervisor_trap_stack_top[];
 
@@ -18,6 +19,7 @@ static inline uint64_t trap_code(uint64_t scause)
 extern "C" void supervisor_trap_handler(TrapFrame *frame)
 {
    uart_puts("Supervisor Trap Encountered\n");
+   uint64_t code = trap_code(frame->cause);
 
    if (trap_is_interrupt(frame->cause))
       uart_puts("Type: Interrupt\n");
@@ -25,7 +27,7 @@ extern "C" void supervisor_trap_handler(TrapFrame *frame)
       uart_puts("Type: Exception\n");
 
    uart_puts("Code: ");
-   Utility::print_hex(trap_code(frame->cause));
+   Utility::print_hex(code);
    uart_puts("\n");
 
    uart_puts("sepc: ");
@@ -38,39 +40,7 @@ extern "C" void supervisor_trap_handler(TrapFrame *frame)
 
    if (!trap_is_interrupt(frame->cause))
    {
-      switch (trap_code(frame->cause))
-      {
-      case 2:
-         panic("Illegal instruction observed");
-         return;
-      case 3: // Breakpoint
-         frame->epc += 4;
-         return;
-
-      case 5 ... 7:
-         panic("access fault");
-         return;
-
-      case 8: // ECALL
-      case 9:
-         uart_puts("ecall handle: unimplemented\n");
-         frame->epc += 4;
-         return;
-
-      case 12: // Instruction Page Fault
-         panic("Observed instruction page fault: unimplemented");
-         return;
-      case 13: // Load Page Fault
-         panic("Observed load page fault: unimplemented");
-         return;
-      case 15: // Store Page Fault
-         panic("Observed store page fault: unimplemented");
-         return;
-
-      default:
-         panic("Unknown fatal trap observed.");
-         return;
-      }
+      trap_handler(code, frame);
    }
 }
 
@@ -90,7 +60,7 @@ extern "C" void machine_trap_handler(TrapFrame *frame)
    Utility::print_hex(frame->tval);
    uart_puts("\n");
 
-   panic("Unimplemented MTH");
+   panic("Machine trap observed, execution halted.");
 }
 #include "CSR.hpp"
 #include "Traps.hpp"
