@@ -1,6 +1,10 @@
 TODO
+
+1. Decide page-fault policy for the kernel
+2. Clean up boot architecture
+3. Move toward U-mode
+
+COMPLETE
+
 1. Test permission faults, not just missing pages
 2. Add a page table walk/debug helper -> bool paging_query(PageTable *root, uint64_t va, uint64_t &pa, uint64_t &flags);
-3. Decide page-fault policy for the kernel
-4. Clean up boot architecture
-5. Move toward U-mode
