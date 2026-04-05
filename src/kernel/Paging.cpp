@@ -1,5 +1,6 @@
 #include "Paging.hpp"
 #include "DTB.hpp"
+#include "CSR.hpp"
 
 extern "C" char __bss_start[];
 extern "C" char __bss_end[];
@@ -170,9 +171,6 @@ bool paging_map_range(PageTable *root,
 
    return true;
 }
-
-#include "Paging.hpp"
-#include "CSR.hpp"
 
 bool paging_init(PageTable *&root,
                  PhysicalPageAllocator &allocator,

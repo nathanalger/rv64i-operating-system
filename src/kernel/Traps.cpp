@@ -1,13 +1,13 @@
 #include "Traps.hpp"
 #include "CSR.hpp"
 #include "UART.hpp"
+#include "Panic.hpp"
 #include "PrintHex.hpp"
 
 static inline bool trap_is_interrupt(uint64_t scause)
 {
    return (scause >> 63) != 0;
 }
-
 static inline uint64_t trap_code(uint64_t scause)
 {
    return scause & ~(1ULL << 63);
@@ -34,29 +34,41 @@ extern "C" void supervisor_trap_handler(TrapFrame *frame)
    Utility::print_hex(frame->tval);
    uart_puts("\n");
 
-   // Example recovery cases:
-
-   // Breakpoint
-   if (!trap_is_interrupt(frame->cause) && trap_code(frame->cause) == 3)
+   if (!trap_is_interrupt(frame->cause))
    {
-      uart_puts("Handling breakpoint\n");
-      frame->epc += 4;
-      return;
-   }
+      switch (trap_code(frame->cause))
+      {
+      case 2:
+         panic("Illegal instruction observed");
+         return;
+      case 3: // Breakpoint
+         frame->epc += 4;
+         return;
 
-   // Environment call
-   if (!trap_is_interrupt(frame->cause) &&
-       (trap_code(frame->cause) == 8 || trap_code(frame->cause) == 9))
-   {
-      uart_puts("Handling ecall\n");
-      frame->epc += 4;
-      return;
-   }
+      case 5 ... 7:
+         panic("access fault");
+         return;
 
-   // Fatal for now
-   uart_puts("Fatal trap\n");
-   while (1)
-   {
+      case 8: // ECALL
+      case 9:
+         uart_puts("ecall handle: unimplemented\n");
+         frame->epc += 4;
+         return;
+
+      case 12: // Instruction Page Fault
+         panic("Observed instruction page fault: unimplemented");
+         return;
+      case 13: // Load Page Fault
+         panic("Observed load page fault: unimplemented");
+         return;
+      case 15: // Store Page Fault
+         panic("Observed store page fault: unimplemented");
+         return;
+
+      default:
+         panic("Unknown fatal trap observed.");
+         return;
+      }
    }
 }
 
@@ -80,12 +92,10 @@ extern "C" void machine_trap_handler(TrapFrame *frame)
    {
    }
 }
-
 void machine_traps_init()
 {
    csr_write_mtvec((uint64_t)machine_trap_entry);
 }
-
 void supervisor_traps_init()
 {
    csr_write_stvec((uint64_t)supervisor_trap_entry);

@@ -7,6 +7,10 @@ extern "C" void supervisor_main()
    uart_puts("Supervisor Mode Reached\n");
    supervisor_traps_init();
 
+   uart_puts("Before load fault\n");
+
+   uart_puts("After load fault\n");
+
    while (1)
    {
    }
