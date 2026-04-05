@@ -19,7 +19,6 @@ static inline uint64_t trap_code(uint64_t scause)
 extern "C" void supervisor_trap_handler(TrapFrame *frame)
 {
    uart_puts("Supervisor Trap Encountered\n");
-   uint64_t code = trap_code(frame->cause);
 
    if (trap_is_interrupt(frame->cause))
       uart_puts("Type: Interrupt\n");
@@ -27,7 +26,7 @@ extern "C" void supervisor_trap_handler(TrapFrame *frame)
       uart_puts("Type: Exception\n");
 
    uart_puts("Code: ");
-   Utility::print_hex(code);
+   Utility::print_hex(trap_code(frame->cause));
    uart_puts("\n");
 
    uart_puts("sepc: ");
@@ -40,7 +39,7 @@ extern "C" void supervisor_trap_handler(TrapFrame *frame)
 
    if (!trap_is_interrupt(frame->cause))
    {
-      trap_handler(code, frame);
+      trap_handler(frame);
    }
 }
 

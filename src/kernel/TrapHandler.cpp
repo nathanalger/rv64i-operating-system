@@ -1,74 +1,96 @@
 #include "TrapHandler.hpp"
 #include "Panic.hpp"
 #include "UART.hpp"
+#include "PrintHex.hpp"
 #include "CSR.hpp"
 
-void panic_unexpected_user_trap()
+[[noreturn]] void panic_trap(const char *message, TrapFrame *frame)
 {
-   panic("Trap reported as coming from user mode, but user mode is not implemented.");
+   uart_puts(message);
+   uart_puts("\nsepc: ");
+   Utility::print_hex(frame->epc);
+   uart_puts("\nscause: ");
+   Utility::print_hex(frame->cause);
+   uart_puts("\nstval: ");
+   Utility::print_hex(frame->tval);
+   uart_puts("\nsstatus: ");
+   Utility::print_hex(frame->status);
+   uart_puts("\n");
+   panic("Trap fatal.");
 }
 
-void trap_handler(uint64_t code, TrapFrame *frame)
+static uint64_t trap_code(uint64_t cause)
 {
-   uint64_t cause = frame->cause;
+   return cause & 0x7FFFFFFFFFFFFFFFULL;
+}
+
+void trap_handler(TrapFrame *frame)
+{
+   const uint64_t cause = frame->cause;
    const bool is_interrupt = (cause >> 63) != 0;
 
    if (is_interrupt)
    {
-      handle_interrupt(code, frame);
+      handle_interrupt(frame);
       return;
    }
 
-   handle_exception(code, frame);
+   handle_exception(frame);
 }
 
-void handle_interrupt(uint64_t code, TrapFrame *frame)
+void handle_interrupt(TrapFrame *frame)
 {
-   (void)frame;
+   const uint64_t code = trap_code(frame->cause);
 
    switch (code)
    {
    case 1: // Supervisor software interrupt
-      panic("Supervisor software interrupt observed: unimplemented");
+      panic_trap("Supervisor software interrupt observed: unimplemented.", frame);
       return;
 
    case 5: // Supervisor timer interrupt
-      panic("Supervisor timer interrupt observed: unimplemented");
+      panic_trap("Supervisor timer interrupt observed: unimplemented.", frame);
       return;
 
    case 9: // Supervisor external interrupt
-      panic("Supervisor external interrupt observed: unimplemented");
+      panic_trap("Supervisor external interrupt observed: unimplemented.", frame);
       return;
 
    default:
-      panic("Unknown interrupt observed.");
+      panic_trap("Unknown interrupt observed.", frame);
       return;
    }
 }
 
-void handle_exception(uint64_t code, TrapFrame *frame)
+void handle_exception(TrapFrame *frame)
 {
-   uint64_t status = frame->status;
-   const bool from_user = ((status & SSTATUS_SPP) == 0);
+   const bool from_user = ((frame->status & SSTATUS_SPP) == 0);
 
    if (from_user)
    {
-      panic_unexpected_user_trap();
+      handle_user_exception(frame);
       return;
    }
+
+   handle_supervisor_exception(frame);
+}
+
+void handle_supervisor_exception(TrapFrame *frame)
+{
+   const uint64_t code = trap_code(frame->cause);
 
    switch (code)
    {
    case 0: // Instruction address misaligned
-      panic("Supervisor instruction address misaligned.");
+      panic_trap("Supervisor instruction address misaligned.", frame);
       return;
 
    case 1: // Instruction access fault
-      panic("Supervisor instruction access fault.");
+      panic_trap("Supervisor instruction access fault.", frame);
       return;
 
    case 2: // Illegal instruction
-      panic("Supervisor observed illegal instruction.");
+      panic_trap("Supervisor observed illegal instruction.", frame);
       return;
 
    case 3: // Breakpoint
@@ -76,48 +98,116 @@ void handle_exception(uint64_t code, TrapFrame *frame)
       return;
 
    case 4: // Load address misaligned
-      panic("Supervisor load address misaligned.");
+      panic_trap("Supervisor load address misaligned.", frame);
       return;
 
    case 5: // Load access fault
-      panic("Supervisor load access fault.");
+      panic_trap("Supervisor load access fault.", frame);
       return;
 
    case 6: // Store/AMO address misaligned
-      panic("Supervisor store/AMO address misaligned.");
+      panic_trap("Supervisor store/AMO address misaligned.", frame);
       return;
 
    case 7: // Store/AMO access fault
-      panic("Supervisor store/AMO access fault.");
+      panic_trap("Supervisor store/AMO access fault.", frame);
       return;
 
    case 8: // ECALL from U-mode
-      panic("ECALL from user mode observed, but user mode is not implemented.");
+      panic_trap("ECALL from user mode reached supervisor supervisor-handler path unexpectedly.", frame);
       return;
 
    case 9: // ECALL from S-mode
-      panic("Unexpected supervisor ecall.");
+      panic_trap("Unexpected supervisor ecall.", frame);
       return;
 
    case 12: // Instruction page fault
-      panic("Supervisor instruction page fault.");
+      panic_trap("Supervisor instruction page fault.", frame);
       return;
 
    case 13: // Load page fault
-      panic("Supervisor load page fault.");
+      panic_trap("Supervisor load page fault.", frame);
       return;
 
    case 15: // Store/AMO page fault
-      panic("Supervisor store/AMO page fault.");
+      panic_trap("Supervisor store/AMO page fault.", frame);
       return;
 
    default:
-      panic("Unknown fatal exception observed.");
+      panic_trap("Unknown supervisor exception observed.", frame);
+      return;
+   }
+}
+
+void handle_user_exception(TrapFrame *frame)
+{
+   const uint64_t code = trap_code(frame->cause);
+
+   switch (code)
+   {
+   case 0: // Instruction address misaligned
+      panic_trap("User instruction address misaligned.", frame);
+      return;
+
+   case 1: // Instruction access fault
+      panic_trap("User instruction access fault.", frame);
+      return;
+
+   case 2: // Illegal instruction
+      panic_trap("User illegal instruction.", frame);
+      return;
+
+   case 3: // Breakpoint
+      advance_trap(frame);
+      return;
+
+   case 4: // Load address misaligned
+      panic_trap("User load address misaligned.", frame);
+      return;
+
+   case 5: // Load access fault
+      panic_trap("User load access fault.", frame);
+      return;
+
+   case 6: // Store/AMO address misaligned
+      panic_trap("User store/AMO address misaligned.", frame);
+      return;
+
+   case 7: // Store/AMO access fault
+      panic_trap("User store/AMO access fault.", frame);
+      return;
+
+   case 8: // ECALL from U-mode
+      // Future syscall handler goes here.
+      // For now, just skip the ecall so you can test the path if needed.
+      advance_trap(frame);
+      panic_trap("User ecall observed, but syscall handling is not implemented.", frame);
+      return;
+
+   case 12: // Instruction page fault
+      panic_trap("User instruction page fault.", frame);
+      return;
+
+   case 13: // Load page fault
+      panic_trap("User load page fault.", frame);
+      return;
+
+   case 15: // Store/AMO page fault
+      panic_trap("User store/AMO page fault.", frame);
+      return;
+
+   default:
+      panic_trap("Unknown user exception observed.", frame);
       return;
    }
 }
 
 void advance_trap(TrapFrame *frame)
 {
-   frame->epc += 4;
+   volatile uint16_t first_half = *(volatile uint16_t *)frame->epc;
+
+   if ((first_half & 0x3) != 0x3)
+      frame->epc += 2;
+   else
+      frame->epc += 4;
 }
