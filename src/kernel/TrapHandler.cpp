@@ -3,7 +3,7 @@
 #include "UART.hpp"
 #include "CSR.hpp"
 
-static void panic_unexpected_user_trap()
+void panic_unexpected_user_trap()
 {
    panic("Trap reported as coming from user mode, but user mode is not implemented.");
 }
