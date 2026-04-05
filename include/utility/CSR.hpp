@@ -15,7 +15,6 @@ constexpr uint64_t MSTATUS_MPP_U = 0ULL << 11;
 constexpr uint64_t MSTATUS_MPP_S = 1ULL << 11;
 constexpr uint64_t MSTATUS_MPP_M = 3ULL << 11;
 
-extern "C" void supervisor_main();
 extern "C" void enter_supervisor_mode();
 
 static inline uint64_t csr_read_sstatus()
@@ -229,6 +228,37 @@ static inline void csr_write_pmpaddr0(uint64_t value)
 static inline void csr_write_pmpcfg0(uint64_t value)
 {
    asm volatile("csrw pmpcfg0, %0" ::"r"(value));
+}
+
+static inline uint64_t csr_read_sp()
+{
+   uint64_t value;
+   asm volatile("mv %0, sp" : "=r"(value));
+   return value;
+}
+
+static inline void csr_write_sscratch(uint64_t value)
+{
+   asm volatile("csrw sscratch, %0" ::"r"(value));
+}
+
+static inline uint64_t csr_read_sscratch()
+{
+   uint64_t value;
+   asm volatile("csrr %0, sscratch" : "=r"(value));
+   return value;
+}
+
+static inline void csr_write_mscratch(uint64_t value)
+{
+   asm volatile("csrw mscratch, %0" ::"r"(value));
+}
+
+static inline uint64_t csr_read_mscratch()
+{
+   uint64_t value;
+   asm volatile("csrr %0, mscratch" : "=r"(value));
+   return value;
 }
 
 static inline void csr_set_mstatus_mpp_supervisor()

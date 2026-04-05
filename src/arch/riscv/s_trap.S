@@ -1,13 +1,15 @@
 .section .text
+.align 2
 .globl supervisor_trap_entry
 supervisor_trap_entry:
+    csrrw sp, sscratch, sp
+
     addi sp, sp, -288
 
-    # Save interrupted registers
     sd ra,   0(sp)
 
-    addi t1, sp, 288
-    sd t1,   8(sp)
+    csrr t0, sscratch
+    sd   t0, 8(sp)
 
     sd gp,  16(sp)
     sd tp,  24(sp)
@@ -39,7 +41,6 @@ supervisor_trap_entry:
     sd t5, 232(sp)
     sd t6, 240(sp)
 
-    # Save CSRs
     csrr t0, sepc
     sd   t0, 248(sp)
 
@@ -52,18 +53,15 @@ supervisor_trap_entry:
     csrr t0, stval
     sd   t0, 272(sp)
 
-    # a0 = TrapFrame*
     mv a0, sp
     call supervisor_trap_handler
 
-    # Restore possibly modified CSRs
     ld t0, 248(sp)
     csrw sepc, t0
 
     ld t0, 256(sp)
     csrw sstatus, t0
 
-    # Restore registers
     ld ra,   0(sp)
     ld gp,  16(sp)
     ld tp,  24(sp)
@@ -95,9 +93,11 @@ supervisor_trap_entry:
     ld t5, 232(sp)
     ld t6, 240(sp)
 
-    ld t2,   8(sp)
+    ld t0, 8(sp)
+
     addi sp, sp, 288
-    mv   sp, t2
+
+    csrw sscratch, sp
+    mv   sp, t0
 
     sret
-    

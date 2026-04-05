@@ -1,14 +1,13 @@
 .section .text
+.align 2
 .globl machine_trap_entry
 machine_trap_entry:
+    csrrw sp, mscratch, sp
+
     addi sp, sp, -288
 
-    # Save interrupted registers
+    # Save registers
     sd ra,   0(sp)
-
-    addi t1, sp, 288
-    sd t1,   8(sp)
-
     sd gp,  16(sp)
     sd tp,  24(sp)
     sd t0,  32(sp)
@@ -39,6 +38,9 @@ machine_trap_entry:
     sd t5, 232(sp)
     sd t6, 240(sp)
 
+    csrr t0, mscratch
+    sd   t0, 8(sp)
+
     # Save machine CSRs
     csrr t0, mepc
     sd   t0, 248(sp)
@@ -56,7 +58,7 @@ machine_trap_entry:
     mv a0, sp
     call machine_trap_handler
 
-    # Restore possibly modified CSRs
+    # Restore machine CSRs
     ld t0, 248(sp)
     csrw mepc, t0
 
@@ -95,8 +97,16 @@ machine_trap_entry:
     ld t5, 232(sp)
     ld t6, 240(sp)
 
-    ld t2,   8(sp)
+    # Restore interrupted sp
+    ld t1, 8(sp)
+
+    # Pop TrapFrame
     addi sp, sp, 288
-    mv   sp, t2
+
+    # Re-arm mscratch with current machine trap stack pointer
+    csrw mscratch, sp
+
+    # Restore interrupted sp
+    mv sp, t1
 
     mret

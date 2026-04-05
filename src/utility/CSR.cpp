@@ -1,5 +1,7 @@
 #include "CSR.hpp"
 
+extern "C" void supervisor_main(const void *dtb);
+
 void delegate_supervisor_exceptions()
 {
    uint64_t deleg = 0;

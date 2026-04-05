@@ -18,7 +18,7 @@ clear_bss:
 
 bss_done:
     mv a0, s0
-    call kernel_main
+    call dispatch
 
 1:
     j 1b

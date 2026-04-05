@@ -1,6 +1,7 @@
 #include "Paging.hpp"
 #include "DTB.hpp"
 #include "CSR.hpp"
+#include "PagingTests.hpp"
 
 extern "C" char __bss_start[];
 extern "C" char __bss_end[];
@@ -13,6 +14,8 @@ extern "C" char _rodata_end[];
 
 extern "C" char _data_start[];
 extern "C" char _data_end[];
+
+PageTable *g_kernel_root = nullptr;
 
 uint64_t sv39_vpn2(uint64_t virtual_address)
 {
@@ -242,9 +245,52 @@ bool paging_init(PageTable *&root,
       return false;
    }
 
+   Utility::test_page_walker(root);
+
    uint64_t satp_value = make_satp_sv39((uint64_t)root);
    csr_write_satp(satp_value);
    sfence_vma();
 
+   g_kernel_root = root;
+
+   return true;
+}
+
+bool paging_query(PageTable *root, uint64_t va, uint64_t &pa, uint64_t &flags)
+{
+   pa = 0;
+   flags = 0;
+
+   if (!root)
+      return false;
+
+   const uint64_t vpn2 = sv39_vpn2(va);
+   const uint64_t vpn1 = sv39_vpn1(va);
+   const uint64_t vpn0 = sv39_vpn0(va);
+   const uint64_t page_offset = va & (PAGE_SIZE - 1);
+
+   const uint64_t l2_entry = root->entries[vpn2];
+   if (!pte_is_valid(l2_entry) || pte_is_leaf(l2_entry))
+      return false;
+
+   PageTable *level1 = reinterpret_cast<PageTable *>(phys_addr_from_pte(l2_entry));
+
+   const uint64_t l1_entry = level1->entries[vpn1];
+   if (!pte_is_valid(l1_entry) || pte_is_leaf(l1_entry))
+      return false;
+
+   PageTable *level0 = reinterpret_cast<PageTable *>(phys_addr_from_pte(l1_entry));
+
+   const uint64_t l0_entry = level0->entries[vpn0];
+   if (!pte_is_valid(l0_entry))
+      return false;
+
+   if (!pte_is_leaf(l0_entry))
+      return false;
+
+   const uint64_t phys_page = phys_addr_from_pte(l0_entry);
+
+   pa = phys_page + page_offset;
+   flags = l0_entry & 0x3FFULL;
    return true;
 }
