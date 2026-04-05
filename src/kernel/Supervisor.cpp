@@ -4,20 +4,27 @@
 #include "PagingTests.hpp"
 #include "Panic.hpp"
 #include "PrintHex.hpp"
+#include "DTB.hpp"
 
-extern "C" char _rodata_start[];
-extern "C" char _supervisor_trap_stack_top[];
-
-extern PageTable *g_kernel_root;
-
-extern "C" void machine_main(const void *dtb);
-
-extern "C" void supervisor_main(const void *dtb)
+extern "C" void supervisor_main(uint64_t hartid, const void *dtb)
 {
-   (void)dtb;
+   (void)hartid;
 
-   uart_puts("Supervisor Mode Reached\n");
+   PlatformInfo platform = {};
+   if (!platform_info_init(platform, dtb))
+      panic("Failed to initialize platform information.");
+
+   PhysicalPageAllocator allocator = {};
+   if (!physical_page_allocator_init(allocator, platform))
+      panic("Failed to initialize physical page allocator.");
+
+   PageTable *root = nullptr;
+   if (!paging_init(root, allocator, platform))
+      panic("Failed to initialize paging.");
+
    supervisor_traps_init();
 
-   panic("Unexpectedly reached end of supervisor mode execution.");
+   uart_puts("Supervisor Mode Reached\n");
+
+      panic("Unexpectedly reached end of supervisor mode execution.");
 }

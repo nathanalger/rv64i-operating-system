@@ -15,7 +15,7 @@ constexpr uint64_t MSTATUS_MPP_U = 0ULL << 11;
 constexpr uint64_t MSTATUS_MPP_S = 1ULL << 11;
 constexpr uint64_t MSTATUS_MPP_M = 3ULL << 11;
 
-extern "C" void enter_supervisor_mode();
+extern "C" void enter_supervisor_mode(uint64_t hartid, const void *dtb);
 
 static inline uint64_t csr_read_sstatus()
 {

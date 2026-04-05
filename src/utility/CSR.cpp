@@ -1,6 +1,6 @@
 #include "CSR.hpp"
 
-extern "C" void supervisor_main(const void *dtb);
+extern "C" void supervisor_main(uint64_t hartid, const void *dtb);
 
 void delegate_supervisor_exceptions()
 {
@@ -22,9 +22,16 @@ void pmp_init_allow_all()
    csr_write_pmpcfg0(pmpcfg);
 }
 
-extern "C" void enter_supervisor_mode()
+extern "C" void enter_supervisor_mode(uint64_t hartid, const void *dtb)
 {
    csr_write_mepc((uint64_t)supervisor_main);
    csr_set_mstatus_mpp_supervisor();
-   asm volatile("mret");
+
+   asm volatile(
+       "mv a0, %0\n"
+       "mv a1, %1\n"
+       "mret\n"
+       :
+       : "r"(hartid), "r"(dtb)
+       : "a0", "a1", "memory");
 }
