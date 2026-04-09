@@ -6,6 +6,7 @@
 #include "Paging.hpp"
 #include "PhysicalPageAllocator.hpp"
 #include "AddressSpace.hpp"
+#include "Debug.hpp"
 
 static inline uint64_t align_down(uint64_t value, uint64_t alignment)
 {
@@ -70,14 +71,14 @@ void user_context_init(UserContext &context,
 
 [[noreturn]] void enter_user_mode(UserContext &context)
 {
-   uart_puts("Entering user mode\n");
-   uart_puts("  epc: ");
-   Utility::print_hex(context.epc);
-   uart_puts("\n");
+   Debug::prints("Entering user mode\n");
+   Debug::prints("  epc: ");
+   Debug::print_hex(context.epc);
+   Debug::prints("\n");
 
-   uart_puts("  sp : ");
-   Utility::print_hex(context.sp);
-   uart_puts("\n");
+   Debug::prints("  sp : ");
+   Debug::print_hex(context.sp);
+   Debug::prints("\n");
 
    user_enter(&context);
 
@@ -150,13 +151,13 @@ bool user_address_space_init(PageTable *root,
    if (!user_address_space_init(root, allocator, user_entry, user_stack_top))
       panic("Failed to initialize user address space.");
 
-   uart_puts("User code VA : ");
-   Utility::print_hex(user_entry);
-   uart_puts("\n");
+   Debug::prints("User code VA : ");
+   Debug::print_hex(user_entry);
+   Debug::prints("\n");
 
-   uart_puts("User stack VA: ");
-   Utility::print_hex(user_stack_top);
-   uart_puts("\n");
+   Debug::prints("User stack VA: ");
+   Debug::print_hex(user_stack_top);
+   Debug::prints("\n");
 
    UserContext context = {};
    user_context_init(context,

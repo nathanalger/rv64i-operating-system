@@ -3,19 +3,21 @@
 #include "UART.hpp"
 #include "PrintHex.hpp"
 #include "CSR.hpp"
+#include "Debug.hpp"
 
 [[noreturn]] void panic_trap(const char *message, TrapFrame *frame)
 {
-   uart_puts(message);
-   uart_puts("\nsepc: ");
-   Utility::print_hex(frame->epc);
-   uart_puts("\nscause: ");
-   Utility::print_hex(frame->cause);
-   uart_puts("\nstval: ");
-   Utility::print_hex(frame->tval);
-   uart_puts("\nsstatus: ");
-   Utility::print_hex(frame->status);
-   uart_puts("\n");
+   Debug::prints(message);
+   Debug::prints("\nsepc: ");
+   Debug::print_hex(frame->epc);
+   Debug::prints("\nscause: ");
+   Debug::print_hex(frame->cause);
+   Debug::prints("\nstval: ");
+   Debug::print_hex(frame->tval);
+   Debug::prints("\nsstatus: ");
+   Debug::print_hex(frame->status);
+   Debug::prints("\n");
+
    panic("Trap fatal.");
 }
 
@@ -171,7 +173,7 @@ void handle_user_exception(TrapFrame *frame)
       return;
 
    case 8: // ECALL from U-mode
-      uart_puts("ECALL From U-Mode\n");
+      Debug::prints("ECALL From U-Mode\n");
       frame->epc += 4; // ecall is always 4 bytes
       return;
 

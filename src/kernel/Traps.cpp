@@ -4,6 +4,7 @@
 #include "Panic.hpp"
 #include "PrintHex.hpp"
 #include "TrapHandler.hpp"
+#include "Debug.hpp"
 
 extern "C" char _supervisor_trap_stack_top[];
 
@@ -18,49 +19,49 @@ static inline uint64_t trap_code(uint64_t scause)
 
 extern "C" void supervisor_trap_handler(TrapFrame *frame)
 {
-   uart_puts("Supervisor Trap Encountered\n");
+   Debug::prints("Supervisor Trap Encountered\n");
 
    const bool is_interrupt = trap_is_interrupt(frame->cause);
    const bool from_user = ((frame->status & SSTATUS_SPP) == 0);
 
    if (is_interrupt)
-      uart_puts("Type: Interrupt\n");
+      Debug::prints("Type: Interrupt\n");
    else
-      uart_puts("Type: Exception\n");
+      Debug::prints("Type: Exception\n");
 
-   uart_puts("Origin: ");
-   uart_puts(from_user ? "User\n" : "Supervisor\n");
+   Debug::prints("Origin: ");
+   Debug::prints(from_user ? "User\n" : "Supervisor\n");
 
-   uart_puts("Code: ");
-   Utility::print_hex(trap_code(frame->cause));
-   uart_puts("\n");
+   Debug::prints("Code: ");
+   Debug::print_hex(trap_code(frame->cause));
+   Debug::prints("\n");
 
-   uart_puts("sepc: ");
-   Utility::print_hex(frame->epc);
-   uart_puts("\n");
+   Debug::prints("sepc: ");
+   Debug::print_hex(frame->epc);
+   Debug::prints("\n");
 
-   uart_puts("stval: ");
-   Utility::print_hex(frame->tval);
-   uart_puts("\n");
+   Debug::prints("stval: ");
+   Debug::print_hex(frame->tval);
+   Debug::prints("\n");
 
    trap_handler(frame);
 }
 
 extern "C" void machine_trap_handler(TrapFrame *frame)
 {
-   uart_puts("Machine trap encountered\n");
+   Debug::prints("Machine trap encountered\n");
 
-   uart_puts("mcause: ");
-   Utility::print_hex(frame->cause);
-   uart_puts("\n");
+   Debug::prints("mcause: ");
+   Debug::print_hex(frame->cause);
+   Debug::prints("\n");
 
-   uart_puts("mepc: ");
-   Utility::print_hex(frame->epc);
-   uart_puts("\n");
+   Debug::prints("mepc: ");
+   Debug::print_hex(frame->epc);
+   Debug::prints("\n");
 
-   uart_puts("mtval: ");
-   Utility::print_hex(frame->tval);
-   uart_puts("\n");
+   Debug::prints("mtval: ");
+   Debug::print_hex(frame->tval);
+   Debug::prints("\n");
 
    panic("Machine trap observed, execution halted.");
 }

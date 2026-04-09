@@ -6,6 +6,7 @@
 #include "PrintHex.hpp"
 #include "DTB.hpp"
 #include "User.hpp"
+#include "Debug.hpp"
 
 extern "C" void supervisor_main(uint64_t hartid, const void *dtb)
 {
@@ -25,7 +26,7 @@ extern "C" void supervisor_main(uint64_t hartid, const void *dtb)
 
    supervisor_traps_init();
 
-   uart_puts("Supervisor Mode Reached\n");
+   Debug::prints("Supervisor Mode Reached\n");
 
    // Prepare for user mode entry
    launch_first_user_task(root, allocator, hartid, (uint64_t)dtb);
