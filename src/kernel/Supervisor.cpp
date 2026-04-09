@@ -28,7 +28,6 @@ extern "C" void supervisor_main(uint64_t hartid, const void *dtb)
 
    Debug::prints("Supervisor Mode Reached\n");
 
-   // Prepare for user mode entry
    launch_first_user_task(root, allocator, hartid, (uint64_t)dtb);
 
    panic("Unexpectedly reached end of supervisor mode execution.");

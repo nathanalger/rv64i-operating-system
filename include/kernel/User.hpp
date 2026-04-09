@@ -68,7 +68,7 @@ bool user_address_space_init(PageTable *root,
                              uint64_t &user_entry_out,
                              uint64_t &user_stack_top_out);
 
-[[noreturn]] void launch_first_user_task(PageTable *root,
-                                         PhysicalPageAllocator &allocator,
-                                         uint64_t hartid,
-                                         uint64_t dtb);
+[[noreturn]] void user_task_init(PageTable *root,
+                                 PhysicalPageAllocator &allocator,
+                                 uint64_t hartid,
+                                 uint64_t dtb);
