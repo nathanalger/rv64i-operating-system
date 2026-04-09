@@ -10,7 +10,8 @@ static uint64_t max_u64(uint64_t a, uint64_t b)
    return (a > b) ? a : b;
 }
 
-bool physical_page_allocator_init(PhysicalPageAllocator& allocator, const PlatformInfo& platform)
+bool physical_page_allocator_init(PhysicalPageAllocator &allocator,
+                                  const PlatformInfo &platform)
 {
    const uint64_t dtb_end = platform.dtb_addr + platform.dtb_size;
    const uint64_t reserved_end = max_u64(platform.kernel_end, dtb_end);
@@ -24,15 +25,15 @@ bool physical_page_allocator_init(PhysicalPageAllocator& allocator, const Platfo
    return true;
 }
 
-void* physical_alloc_page(PhysicalPageAllocator& allocator)
+uint64_t physical_alloc_page(PhysicalPageAllocator &allocator)
 {
    const uint64_t page_size = 4096;
 
    uint64_t addr = align_up(allocator.current, page_size);
 
    if (addr + page_size > allocator.end)
-      return nullptr;
+      return 0;
 
    allocator.current = addr + page_size;
-   return reinterpret_cast<void*>(addr);
+   return addr;
 }

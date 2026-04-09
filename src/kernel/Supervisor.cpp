@@ -5,6 +5,7 @@
 #include "Panic.hpp"
 #include "PrintHex.hpp"
 #include "DTB.hpp"
+#include "User.hpp"
 
 extern "C" void supervisor_main(uint64_t hartid, const void *dtb)
 {
@@ -26,5 +27,8 @@ extern "C" void supervisor_main(uint64_t hartid, const void *dtb)
 
    uart_puts("Supervisor Mode Reached\n");
 
-      panic("Unexpectedly reached end of supervisor mode execution.");
+   // Prepare for user mode entry
+   launch_first_user_task(root, allocator, hartid, (uint64_t)dtb);
+
+   panic("Unexpectedly reached end of supervisor mode execution.");
 }

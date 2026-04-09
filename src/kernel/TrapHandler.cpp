@@ -24,18 +24,14 @@ static uint64_t trap_code(uint64_t cause)
    return cause & 0x7FFFFFFFFFFFFFFFULL;
 }
 
-void trap_handler(TrapFrame *frame)
+void advance_trap(TrapFrame *frame)
 {
-   const uint64_t cause = frame->cause;
-   const bool is_interrupt = (cause >> 63) != 0;
+   volatile uint16_t first_half = *(volatile uint16_t *)frame->epc;
 
-   if (is_interrupt)
-   {
-      handle_interrupt(frame);
-      return;
-   }
-
-   handle_exception(frame);
+   if ((first_half & 0x3) != 0x3)
+      frame->epc += 2;
+   else
+      frame->epc += 4;
 }
 
 void handle_interrupt(TrapFrame *frame)
@@ -60,19 +56,6 @@ void handle_interrupt(TrapFrame *frame)
       panic_trap("Unknown interrupt observed.", frame);
       return;
    }
-}
-
-void handle_exception(TrapFrame *frame)
-{
-   const bool from_user = ((frame->status & SSTATUS_SPP) == 0);
-
-   if (from_user)
-   {
-      handle_user_exception(frame);
-      return;
-   }
-
-   handle_supervisor_exception(frame);
 }
 
 void handle_supervisor_exception(TrapFrame *frame)
@@ -114,7 +97,7 @@ void handle_supervisor_exception(TrapFrame *frame)
       return;
 
    case 8: // ECALL from U-mode
-      panic_trap("ECALL from user mode reached supervisor supervisor-handler path unexpectedly.", frame);
+      panic_trap("ECALL from user mode reached supervisor handler unexpectedly.", frame);
       return;
 
    case 9: // ECALL from S-mode
@@ -178,10 +161,9 @@ void handle_user_exception(TrapFrame *frame)
       return;
 
    case 8: // ECALL from U-mode
-      // Future syscall handler goes here.
-      // For now, just skip the ecall so you can test the path if needed.
-      advance_trap(frame);
-      panic_trap("User ecall observed, but syscall handling is not implemented.", frame);
+      // For now, just skip the ecall and return to user mode.
+      // ecall is always a 32-bit instruction.
+      frame->epc += 4;
       return;
 
    case 12: // Instruction page fault
@@ -202,12 +184,29 @@ void handle_user_exception(TrapFrame *frame)
    }
 }
 
-void advance_trap(TrapFrame *frame)
+void handle_exception(TrapFrame *frame)
 {
-   volatile uint16_t first_half = *(volatile uint16_t *)frame->epc;
+   const bool from_user = ((frame->status & SSTATUS_SPP) == 0);
 
-   if ((first_half & 0x3) != 0x3)
-      frame->epc += 2;
-   else
-      frame->epc += 4;
+   if (from_user)
+   {
+      handle_user_exception(frame);
+      return;
+   }
+
+   handle_supervisor_exception(frame);
+}
+
+void trap_handler(TrapFrame *frame)
+{
+   const uint64_t cause = frame->cause;
+   const bool is_interrupt = (cause >> 63) != 0;
+
+   if (is_interrupt)
+   {
+      handle_interrupt(frame);
+      return;
+   }
+
+   handle_exception(frame);
 }

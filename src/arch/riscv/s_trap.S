@@ -93,11 +93,10 @@ supervisor_trap_entry:
     ld t5, 232(sp)
     ld t6, 240(sp)
 
-    ld t0, 8(sp)
+    ld t0, 8(sp)           # saved user sp
+    addi t1, sp, 288       # restored supervisor trap stack pointer
 
-    addi sp, sp, 288
-
-    csrw sscratch, sp
+    csrw sscratch, t1
     mv   sp, t0
 
     sret

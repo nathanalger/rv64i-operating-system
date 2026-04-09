@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include "PhysicalPageAllocator.hpp"
+#include "PlatformInfo.hpp"
 
 constexpr uint64_t PAGE_SIZE = 4096;
 constexpr uint64_t PAGE_TABLE_ENTRIES = 512;
@@ -21,12 +22,29 @@ constexpr uint64_t PTE_G = 1ULL << 5;
 constexpr uint64_t PTE_A = 1ULL << 6;
 constexpr uint64_t PTE_D = 1ULL << 7;
 
+extern PageTable *g_kernel_root;
+
 uint64_t sv39_vpn2(uint64_t virtual_address);
 uint64_t sv39_vpn1(uint64_t virtual_address);
 uint64_t sv39_vpn0(uint64_t virtual_address);
 
 bool pte_is_valid(uint64_t pte);
 bool pte_is_leaf(uint64_t pte);
+
+bool paging_map_early(PageTable *root,
+                      uint64_t virtual_address,
+                      uint64_t physical_address,
+                      uint64_t flags,
+                      PhysicalPageAllocator &allocator);
+
+bool paging_map_range_early(PageTable *root,
+                            uint64_t virtual_start,
+                            uint64_t physical_start,
+                            uint64_t size,
+                            uint64_t flags,
+                            PhysicalPageAllocator &allocator);
+
+bool paging_query_early(PageTable *root, uint64_t va, uint64_t &pa, uint64_t &flags);
 
 bool paging_map(PageTable *root,
                 uint64_t virtual_address,
