@@ -3,7 +3,7 @@
 
 namespace Debug
 {
-   static bool debug = true;
+   static bool debug = false;
 
    static void prints(const char *str)
    {

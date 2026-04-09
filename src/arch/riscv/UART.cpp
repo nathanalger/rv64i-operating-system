@@ -2,6 +2,11 @@
 
 static uint64_t g_uart_base = 0x10000000;
 
+static volatile unsigned char *uart_reg_offset(uint64_t offset)
+{
+    return (volatile unsigned char *)(g_uart_base + offset);
+}
+
 void uart_init(uint64_t base_address)
 {
     g_uart_base = base_address;
@@ -12,9 +17,9 @@ uint64_t uart_base()
     return g_uart_base;
 }
 
-static volatile unsigned char* uart_reg()
+static volatile unsigned char *uart_reg()
 {
-    return (volatile unsigned char*)g_uart_base;
+    return (volatile unsigned char *)g_uart_base;
 }
 
 void uart_putc(char c)
@@ -22,10 +27,21 @@ void uart_putc(char c)
     *uart_reg() = (unsigned char)c;
 }
 
-void uart_puts(const char* s)
+void uart_puts(const char *s)
 {
     while (*s)
     {
         uart_putc(*s++);
     }
+}
+
+char uart_getc()
+{
+    while ((*uart_reg_offset(UART_LSR) & UART_LSR_RX_READY) == 0)
+    {
+    }
+
+    char c = (char)(*uart_reg_offset(UART_RHR));
+
+    return c;
 }
