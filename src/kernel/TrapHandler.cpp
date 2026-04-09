@@ -4,6 +4,7 @@
 #include "PrintHex.hpp"
 #include "CSR.hpp"
 #include "Debug.hpp"
+#include "Syscall.hpp"
 
 [[noreturn]] void panic_trap(const char *message, TrapFrame *frame)
 {
@@ -173,8 +174,7 @@ void handle_user_exception(TrapFrame *frame)
       return;
 
    case 8: // ECALL from U-mode
-      Debug::prints("ECALL From U-Mode\n");
-      frame->epc += 4; // ecall is always 4 bytes
+      syscall_handle(frame);
       return;
 
    case 12: // Instruction page fault
