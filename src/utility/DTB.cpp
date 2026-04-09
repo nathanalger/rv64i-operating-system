@@ -35,8 +35,6 @@ struct DtbHeader
     uint32_t size_dt_struct;
 };
 
-// End Helpers
-
 static const void *g_dtb = nullptr;
 static uint64_t read_cells(const fdt32_t *cells, int count)
 {
