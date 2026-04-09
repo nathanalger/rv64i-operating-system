@@ -8,6 +8,9 @@
 #include "AddressSpace.hpp"
 #include "Debug.hpp"
 
+extern "C" unsigned char _binary_build_user_init_bin_start[];
+extern "C" unsigned char _binary_build_user_init_bin_end[];
+
 static inline uint64_t align_down(uint64_t value, uint64_t alignment)
 {
    return value & ~(alignment - 1);
@@ -87,11 +90,16 @@ void user_context_init(UserContext &context,
 
 void write_initial_user_program(uint64_t user_code_physical_base)
 {
-   volatile uint32_t *code =
-       phys_to_virt_ptr<volatile uint32_t>(user_code_physical_base);
+   uint8_t *dst = phys_to_virt_ptr<uint8_t>(user_code_physical_base);
 
-   code[0] = 0x00000073; // ecall
-   code[1] = 0x0000006F; // jal x0, 0
+   const uint8_t *src = _binary_build_user_init_bin_start;
+   uint64_t size = (uint64_t)(_binary_build_user_init_bin_end - _binary_build_user_init_bin_start);
+
+   if (size > PAGE_SIZE)
+      panic("Initial user program does not fit in one page.");
+
+   for (uint64_t i = 0; i < size; ++i)
+      dst[i] = src[i];
 }
 
 bool user_address_space_init(PageTable *root,

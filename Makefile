@@ -2,16 +2,16 @@ CXX = riscv-none-elf-g++
 CC  = riscv-none-elf-gcc
 AS  = riscv-none-elf-gcc
 LD  = riscv-none-elf-g++
+RISCV_LD = riscv-none-elf-ld
+OBJCOPY = riscv-none-elf-objcopy
 
 CXXFLAGS = -g -Wall -Wextra -std=c++20 -ffreestanding -fno-exceptions -fno-rtti -fno-use-cxa-atexit -fno-threadsafe-statics -march=rv64imac_zicsr -mabi=lp64 -mcmodel=medany -msmall-data-limit=0
 CFLAGS   = -g -Wall -Wextra -ffreestanding -march=rv64imac_zicsr -mabi=lp64 -mcmodel=medany -msmall-data-limit=0
 ASFLAGS  = -g -Wall -Wextra -ffreestanding -march=rv64imac_zicsr -mabi=lp64 -mcmodel=medany -msmall-data-limit=0
-LDFLAGS_COMMON = -nostdlib -march=rv64imac_zicsr -mabi=lp64 -mcmodel=medany -msmall-data-limit=0
 
+LDFLAGS_COMMON = -nostdlib -march=rv64imac_zicsr -mabi=lp64 -mcmodel=medany -msmall-data-limit=0
 LDFLAGS_M = $(LDFLAGS_COMMON) -T linker/kernel-m.ld
 LDFLAGS_S = $(LDFLAGS_COMMON) -T linker/kernel-s.ld
-
-OBJCOPY = riscv-none-elf-objcopy
 
 BUILD_DIR = build
 INCLUDES  = -Iinclude -Iinclude/arch/riscv -Iinclude/utility -Ilib/libfdt -Iinclude/kernel
@@ -21,23 +21,29 @@ KERNEL_S_ELF = $(BUILD_DIR)/kernel-s.elf
 KERNEL_M_BIN = $(BUILD_DIR)/kernel-m.bin
 KERNEL_S_BIN = $(BUILD_DIR)/kernel-s.bin
 
+USER_INIT_SRC      = src/arch/riscv/user/init.S
+USER_INIT_LD       = linker/user.ld
+USER_INIT_OBJ      = $(BUILD_DIR)/user/init.o
+USER_INIT_ELF      = $(BUILD_DIR)/user/init.elf
+USER_INIT_BIN      = $(BUILD_DIR)/user/init.bin
+USER_INIT_BLOB_OBJ = $(BUILD_DIR)/user/init_blob.o
+
 rwildcard = $(foreach d,$(wildcard $1/*),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
 
 # All sources
 ALL_CPP_SRCS := $(call rwildcard,src,*.cpp)
 ALL_ASM_SRCS := $(call rwildcard,src,*.S)
-
-FDT_SRCS := $(call rwildcard,lib/libfdt,*.c)
+FDT_SRCS     := $(call rwildcard,lib/libfdt,*.c)
 
 # Boot-specific files
-M_ENTRY_SRC     := src/arch/riscv/boot/m_entry.S
-S_ENTRY_SRC     := src/arch/riscv/boot/s_entry.S
-M_DISPATCH_SRC  := src/arch/riscv/boot/dispatch_m.cpp
-S_DISPATCH_SRC  := src/arch/riscv/boot/dispatch_s.cpp
+M_ENTRY_SRC    := src/arch/riscv/boot/m_entry.S
+S_ENTRY_SRC    := src/arch/riscv/boot/s_entry.S
+M_DISPATCH_SRC := src/arch/riscv/boot/dispatch_m.cpp
+S_DISPATCH_SRC := src/arch/riscv/boot/dispatch_s.cpp
 
-# Remove boot-specific files from common lists
+# Remove boot-specific files and user init from common lists
 COMMON_CPP_SRCS := $(filter-out $(M_DISPATCH_SRC) $(S_DISPATCH_SRC),$(ALL_CPP_SRCS))
-COMMON_ASM_SRCS := $(filter-out $(M_ENTRY_SRC) $(S_ENTRY_SRC),$(ALL_ASM_SRCS))
+COMMON_ASM_SRCS := $(filter-out $(M_ENTRY_SRC) $(S_ENTRY_SRC) $(USER_INIT_SRC),$(ALL_ASM_SRCS))
 
 # Object path helpers
 COMMON_CPP_OBJS := $(patsubst src/%.cpp,$(BUILD_DIR)/common/%.o,$(COMMON_CPP_SRCS))
@@ -49,25 +55,43 @@ S_ENTRY_OBJ     := $(BUILD_DIR)/s/arch/riscv/boot/s_entry.o
 M_DISPATCH_OBJ  := $(BUILD_DIR)/m/arch/riscv/boot/dispatch_m.o
 S_DISPATCH_OBJ  := $(BUILD_DIR)/s/arch/riscv/boot/dispatch_s.o
 
-M_OBJS = $(COMMON_CPP_OBJS) $(COMMON_ASM_OBJS) $(FDT_OBJS) $(M_ENTRY_OBJ) $(M_DISPATCH_OBJ)
-S_OBJS = $(COMMON_CPP_OBJS) $(COMMON_ASM_OBJS) $(FDT_OBJS) $(S_ENTRY_OBJ) $(S_DISPATCH_OBJ)
+M_OBJS := $(COMMON_CPP_OBJS) $(COMMON_ASM_OBJS) $(FDT_OBJS) $(M_ENTRY_OBJ) $(M_DISPATCH_OBJ) $(USER_INIT_BLOB_OBJ)
+S_OBJS := $(COMMON_CPP_OBJS) $(COMMON_ASM_OBJS) $(FDT_OBJS) $(S_ENTRY_OBJ) $(S_DISPATCH_OBJ) $(USER_INIT_BLOB_OBJ)
 
 all: build
 	@echo Done!
 
-build: setup $(KERNEL_M_ELF) $(KERNEL_M_BIN) $(KERNEL_S_ELF) $(KERNEL_S_BIN)
+build: setup $(USER_INIT_BLOB_OBJ) $(KERNEL_M_ELF) $(KERNEL_M_BIN) $(KERNEL_S_ELF) $(KERNEL_S_BIN)
+
+setup:
+	@if not exist "$(BUILD_DIR)" mkdir "$(BUILD_DIR)"
 
 # Raw binaries
 $(KERNEL_M_BIN): $(KERNEL_M_ELF)
 	@echo Creating raw binary $@...
-	$(OBJCOPY) -O binary $(KERNEL_M_ELF) $(KERNEL_M_BIN)
+	$(OBJCOPY) -O binary $< $@
 
 $(KERNEL_S_BIN): $(KERNEL_S_ELF)
 	@echo Creating raw binary $@...
-	$(OBJCOPY) -O binary $(KERNEL_S_ELF) $(KERNEL_S_BIN)
+	$(OBJCOPY) -O binary $< $@
 
-setup:
-	@if not exist "$(BUILD_DIR)" mkdir "$(BUILD_DIR)"
+# User init program
+$(USER_INIT_OBJ): $(USER_INIT_SRC)
+	@echo Assembling user init $<...
+	@if not exist "$(dir $@)" mkdir "$(dir $@)"
+	$(AS) $(ASFLAGS) -c $< -o $@
+
+$(USER_INIT_ELF): $(USER_INIT_OBJ) $(USER_INIT_LD)
+	@echo Linking user init ELF...
+	$(RISCV_LD) -melf64lriscv -T $(USER_INIT_LD) -Map=$(BUILD_DIR)/user/init.map -o $@ $(USER_INIT_OBJ)
+
+$(USER_INIT_BIN): $(USER_INIT_ELF)
+	@echo Creating user init binary...
+	$(OBJCOPY) -O binary $< $@
+
+$(USER_INIT_BLOB_OBJ): $(USER_INIT_BIN)
+	@echo Converting user init binary to object blob...
+	$(RISCV_LD) -r -b binary -melf64lriscv -o $@ $<
 
 # Common C++
 $(BUILD_DIR)/common/%.o: src/%.cpp
@@ -139,3 +163,4 @@ print-src:
 	@echo ALL_ASM_SRCS=$(ALL_ASM_SRCS)
 	@echo COMMON_CPP_SRCS=$(COMMON_CPP_SRCS)
 	@echo COMMON_ASM_SRCS=$(COMMON_ASM_SRCS)
+	@echo USER_INIT_SRC=$(USER_INIT_SRC)
