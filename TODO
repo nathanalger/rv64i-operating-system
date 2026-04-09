@@ -8,3 +8,39 @@ COMPLETE
 3. Decide page-fault policy for the kernel
 4. Clean up boot architecture
 5. U-Mode complete
+
+
+NEXT - KERNEL CORE
+
+1. Clean up trap logging so normal user syscalls do not print full trap diagnostics
+2. Split user stack from supervisor/kernel stack
+3. Add a proper task exit path instead of halting forever in syscall_exit
+4. Add a basic scheduler or idle/task manager path after user exit
+5. Add a simple task/process structure for the first user task
+6. Add a proper copy_to_user / copy_from_user utility layer outside syscall.cpp
+
+
+NEXT - USER MEMORY / LOADING
+
+7. Separate user text and writable user data pages instead of relying on the stack for writable buffers
+8. Build a basic process memory layout plan: text, rodata, data, bss, heap, stack
+9. Load the first user program more formally, preparing for ELF loading later
+10. Start designing ELF loading for user programs
+11. Move user init from test-only assembly into a real first user program design
+
+
+NEXT - SYSCALL / USERSPACE
+
+12. Finish Syscall.md and keep syscall numbers/behavior documented as they change
+13. Add more syscall tests, including invalid fd, invalid syscall number, and bad user pointer cases
+14. Add getpid or yield as the next small syscall
+15. Add exit_group semantics that can later differ from exit when multithreading exists
+16. Add a read path that can later support raw mode vs line-buffered mode
+17. Design the first real init process that will eventually launch other user programs
+
+
+NEXT - DEVICES / PLATFORM
+
+18. Add a minimal console layer above the UART driver
+19. Stop hardcoding UART details in syscall code and route stdin/stdout/stderr through a file-descriptor-like interface
+20. Move UART base discovery fully to platform or DTB initialization instead of relying on hardcoded defaults
