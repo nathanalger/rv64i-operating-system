@@ -24,6 +24,16 @@ static uint64_t trap_code(uint64_t cause)
    return cause & 0x7FFFFFFFFFFFFFFFULL;
 }
 
+static bool trap_is_interrupt(uint64_t cause)
+{
+   return (cause >> 63) != 0;
+}
+
+static bool trap_from_user(const TrapFrame *frame)
+{
+   return (frame->status & SSTATUS_SPP) == 0;
+}
+
 void advance_trap(TrapFrame *frame)
 {
    volatile uint16_t first_half = *(volatile uint16_t *)frame->epc;
@@ -73,7 +83,7 @@ void handle_supervisor_exception(TrapFrame *frame)
       return;
 
    case 2: // Illegal instruction
-      panic_trap("Supervisor observed illegal instruction.", frame);
+      panic_trap("Supervisor illegal instruction.", frame);
       return;
 
    case 3: // Breakpoint
@@ -97,7 +107,7 @@ void handle_supervisor_exception(TrapFrame *frame)
       return;
 
    case 8: // ECALL from U-mode
-      panic_trap("ECALL from user mode reached supervisor handler unexpectedly.", frame);
+      panic_trap("ECALL from U-mode reached supervisor exception path unexpectedly.", frame);
       return;
 
    case 9: // ECALL from S-mode
@@ -161,9 +171,8 @@ void handle_user_exception(TrapFrame *frame)
       return;
 
    case 8: // ECALL from U-mode
-      // For now, just skip the ecall and return to user mode.
-      // ecall is always a 32-bit instruction.
-      frame->epc += 4;
+      uart_puts("ECALL From U-Mode\n");
+      frame->epc += 4; // ecall is always 4 bytes
       return;
 
    case 12: // Instruction page fault
@@ -186,9 +195,7 @@ void handle_user_exception(TrapFrame *frame)
 
 void handle_exception(TrapFrame *frame)
 {
-   const bool from_user = ((frame->status & SSTATUS_SPP) == 0);
-
-   if (from_user)
+   if (trap_from_user(frame))
    {
       handle_user_exception(frame);
       return;
@@ -199,10 +206,7 @@ void handle_exception(TrapFrame *frame)
 
 void trap_handler(TrapFrame *frame)
 {
-   const uint64_t cause = frame->cause;
-   const bool is_interrupt = (cause >> 63) != 0;
-
-   if (is_interrupt)
+   if (trap_is_interrupt(frame->cause))
    {
       handle_interrupt(frame);
       return;

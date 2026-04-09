@@ -2,18 +2,36 @@
 .align 2
 .globl supervisor_trap_entry
 supervisor_trap_entry:
+    # Read sstatus first so we can check SPP
+    csrr t0, sstatus
+
+    # If SPP == 0, trap came from U-mode
+    andi t1, t0, 0x100
+    beqz t1, .from_user
+
+.from_supervisor:
+    # We are already on a supervisor stack.
+    # Save original supervisor sp in t2.
+    mv t2, sp
+    j .build_frame
+
+.from_user:
+    # Swap user sp with supervisor trap stack from sscratch.
     csrrw sp, sscratch, sp
 
+    # After swap:
+    #   sp = supervisor trap stack
+    #   sscratch = user sp
+    csrr t2, sscratch       # t2 = saved user sp
+
+.build_frame:
     addi sp, sp, -288
 
     sd ra,   0(sp)
-
-    csrr t0, sscratch
-    sd   t0, 8(sp)
-
+    sd t2,   8(sp)          # saved original sp (user or supervisor)
     sd gp,  16(sp)
     sd tp,  24(sp)
-    sd t0,  32(sp)
+    sd t0,  32(sp)          # save original sstatus value read at entry
     sd t1,  40(sp)
     sd t2,  48(sp)
     sd s0,  56(sp)
@@ -41,27 +59,34 @@ supervisor_trap_entry:
     sd t5, 232(sp)
     sd t6, 240(sp)
 
-    csrr t0, sepc
-    sd   t0, 248(sp)
+    csrr t3, sepc
+    sd   t3, 248(sp)
 
-    csrr t0, sstatus
-    sd   t0, 256(sp)
+    # status already read into t0 at entry, but read again for accuracy
+    csrr t3, sstatus
+    sd   t3, 256(sp)
 
-    csrr t0, scause
-    sd   t0, 264(sp)
+    csrr t3, scause
+    sd   t3, 264(sp)
 
-    csrr t0, stval
-    sd   t0, 272(sp)
+    csrr t3, stval
+    sd   t3, 272(sp)
 
     mv a0, sp
     call supervisor_trap_handler
 
+    # Restore CSRs
     ld t0, 248(sp)
     csrw sepc, t0
 
     ld t0, 256(sp)
     csrw sstatus, t0
 
+    # Reload saved status so we know whether this was from U or S
+    ld t0, 256(sp)
+    andi t1, t0, 0x100      # SPP bit
+
+    # Restore GPRs except sp for now
     ld ra,   0(sp)
     ld gp,  16(sp)
     ld tp,  24(sp)
@@ -93,10 +118,21 @@ supervisor_trap_entry:
     ld t5, 232(sp)
     ld t6, 240(sp)
 
-    ld t0, 8(sp)           # saved user sp
-    addi t1, sp, 288       # restored supervisor trap stack pointer
+    # Load saved original sp
+    ld t2, 8(sp)
 
-    csrw sscratch, t1
-    mv   sp, t0
+    # Pop frame
+    addi sp, sp, 288
 
+    # If SPP == 0, return to U-mode and restore sscratch to trap stack
+    andi t1, t0, 0x100
+    beqz t1, .return_to_user
+
+.return_to_supervisor:
+    mv sp, t2
+    sret
+
+.return_to_user:
+    csrw sscratch, sp       # put supervisor trap stack pointer back
+    mv   sp, t2             # restore user sp
     sret

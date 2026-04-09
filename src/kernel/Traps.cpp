@@ -20,10 +20,16 @@ extern "C" void supervisor_trap_handler(TrapFrame *frame)
 {
    uart_puts("Supervisor Trap Encountered\n");
 
-   if (trap_is_interrupt(frame->cause))
+   const bool is_interrupt = trap_is_interrupt(frame->cause);
+   const bool from_user = ((frame->status & SSTATUS_SPP) == 0);
+
+   if (is_interrupt)
       uart_puts("Type: Interrupt\n");
    else
       uart_puts("Type: Exception\n");
+
+   uart_puts("Origin: ");
+   uart_puts(from_user ? "User\n" : "Supervisor\n");
 
    uart_puts("Code: ");
    Utility::print_hex(trap_code(frame->cause));
@@ -37,10 +43,7 @@ extern "C" void supervisor_trap_handler(TrapFrame *frame)
    Utility::print_hex(frame->tval);
    uart_puts("\n");
 
-   if (!trap_is_interrupt(frame->cause))
-   {
-      trap_handler(frame);
-   }
+   trap_handler(frame);
 }
 
 extern "C" void machine_trap_handler(TrapFrame *frame)
