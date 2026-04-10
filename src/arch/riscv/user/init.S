@@ -3,9 +3,6 @@
 .global _start
 
 _start:
-    # Reserve 64 bytes on the user stack for input
-    addi sp, sp, -64
-
     # write(1, prompt, prompt_end - prompt)
     li  a0, 1
     la  a1, prompt
@@ -14,9 +11,9 @@ _start:
     li  a7, 64
     ecall
 
-    # read(0, sp, 64)
+    # read(0, input_buffer, 64)
     li  a0, 0
-    mv  a1, sp
+    la  a1, input_buffer
     li  a2, 64
     li  a7, 63
     ecall
@@ -32,12 +29,14 @@ _start:
     li  a7, 64
     ecall
 
-    # write(1, sp, bytes_read)
+    # write(1, input_buffer, bytes_read)
     li  a0, 1
-    mv  a1, sp
+    la  a1, input_buffer
     mv  a2, s0
     li  a7, 64
     ecall
+
+
 
     # exit_group(0)
     li  a0, 0
@@ -56,3 +55,8 @@ prompt_end:
 echo_prefix:
     .ascii "\nYou typed: "
 echo_prefix_end:
+
+.section .bss
+.align 3
+input_buffer:
+    .skip 64

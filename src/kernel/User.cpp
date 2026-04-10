@@ -1,27 +1,13 @@
 #include "User.hpp"
 #include "CSR.hpp"
-#include "UART.hpp"
 #include "Panic.hpp"
-#include "PrintHex.hpp"
-#include "Paging.hpp"
 #include "PhysicalPageAllocator.hpp"
-#include "AddressSpace.hpp"
 #include "Debug.hpp"
-
-extern "C" unsigned char _binary_build_user_init_bin_start[];
-extern "C" unsigned char _binary_build_user_init_bin_end[];
+#include "ProcessLoader.hpp"
 
 static inline uint64_t align_down(uint64_t value, uint64_t alignment)
 {
    return value & ~(alignment - 1);
-}
-
-static void zero_page(uint64_t physical_address)
-{
-   uint8_t *bytes = phys_to_virt_ptr<uint8_t>(physical_address);
-
-   for (uint64_t i = 0; i < PAGE_SIZE; ++i)
-      bytes[i] = 0;
 }
 
 void user_context_init(UserContext &context,
@@ -88,89 +74,28 @@ void user_context_init(UserContext &context,
    panic("Returned from user_enter unexpectedly.");
 }
 
-void write_initial_user_program(uint64_t user_code_physical_base)
-{
-   uint8_t *dst = phys_to_virt_ptr<uint8_t>(user_code_physical_base);
-
-   const uint8_t *src = _binary_build_user_init_bin_start;
-   uint64_t size = (uint64_t)(_binary_build_user_init_bin_end - _binary_build_user_init_bin_start);
-
-   if (size > PAGE_SIZE)
-      panic("Initial user program does not fit in one page.");
-
-   for (uint64_t i = 0; i < size; ++i)
-      dst[i] = src[i];
-}
-
-bool user_address_space_init(PageTable *root,
-                             PhysicalPageAllocator &allocator,
-                             uint64_t &user_entry_out,
-                             uint64_t &user_stack_top_out)
-{
-   if (!root)
-      return false;
-
-   const uint64_t user_code_phys = physical_alloc_page(allocator);
-   if (user_code_phys == 0)
-      return false;
-
-   const uint64_t user_stack_phys = physical_alloc_page(allocator);
-   if (user_stack_phys == 0)
-      return false;
-
-   zero_page(user_code_phys);
-   zero_page(user_stack_phys);
-
-   write_initial_user_program(user_code_phys);
-
-   if (!paging_map(root,
-                   USER_CODE_VIRTUAL_BASE,
-                   user_code_phys,
-                   PTE_R | PTE_X | PTE_U,
-                   allocator))
-   {
-      return false;
-   }
-
-   if (!paging_map(root,
-                   USER_STACK_VIRTUAL_BASE,
-                   user_stack_phys,
-                   PTE_R | PTE_W | PTE_U,
-                   allocator))
-   {
-      return false;
-   }
-
-   sfence_vma();
-
-   user_entry_out = USER_CODE_VIRTUAL_BASE;
-   user_stack_top_out = USER_STACK_VIRTUAL_BASE + USER_STACK_SIZE;
-   return true;
-}
-
 [[noreturn]] void user_task_init(PageTable *root,
                                  PhysicalPageAllocator &allocator,
                                  uint64_t hartid,
                                  uint64_t dtb)
 {
-   uint64_t user_entry = 0;
-   uint64_t user_stack_top = 0;
+   LoadedUserProgram program = {};
 
-   if (!user_address_space_init(root, allocator, user_entry, user_stack_top))
-      panic("Failed to initialize user address space.");
+   if (!process_load_initial_user_program(root, allocator, program))
+      panic("Failed to load initial user program.");
 
    Debug::prints("User code VA : ");
-   Debug::print_hex(user_entry);
+   Debug::print_hex(program.entry);
    Debug::prints("\n");
 
    Debug::prints("User stack VA: ");
-   Debug::print_hex(user_stack_top);
+   Debug::print_hex(program.stack_top);
    Debug::prints("\n");
 
    UserContext context = {};
    user_context_init(context,
-                     user_entry,
-                     user_stack_top,
+                     program.entry,
+                     program.stack_top,
                      hartid,
                      dtb);
 

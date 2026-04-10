@@ -47,10 +47,6 @@ static_assert(offsetof(UserContext, status) == 256, "UserContext status offset m
 struct PageTable;
 struct PhysicalPageAllocator;
 
-constexpr uint64_t USER_CODE_VIRTUAL_BASE = 0x0000000000400000ULL;
-constexpr uint64_t USER_STACK_VIRTUAL_BASE = 0x0000000000410000ULL;
-constexpr uint64_t USER_STACK_SIZE = 4096;
-
 extern "C" void user_enter(UserContext *context);
 
 void user_context_init(UserContext &context,
@@ -60,13 +56,6 @@ void user_context_init(UserContext &context,
                        uint64_t arg1);
 
 [[noreturn]] void enter_user_mode(UserContext &context);
-
-void write_initial_user_program(uint64_t user_code_physical_base);
-
-bool user_address_space_init(PageTable *root,
-                             PhysicalPageAllocator &allocator,
-                             uint64_t &user_entry_out,
-                             uint64_t &user_stack_top_out);
 
 [[noreturn]] void user_task_init(PageTable *root,
                                  PhysicalPageAllocator &allocator,

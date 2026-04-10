@@ -12,12 +12,11 @@ COMPLETE
 
 NEXT - KERNEL CORE
 
-1. Clean up trap logging so normal user syscalls do not print full trap diagnostics
-2. Split user stack from supervisor/kernel stack
-3. Add a proper task exit path instead of halting forever in syscall_exit
-4. Add a basic scheduler or idle/task manager path after user exit
-5. Add a simple task/process structure for the first user task
-6. Add a proper copy_to_user / copy_from_user utility layer outside syscall.cpp
+1. Split user stack from supervisor/kernel stack
+2. Add a proper task exit path instead of halting forever in syscall_exit
+3. Add a basic scheduler or idle/task manager path after user exit
+4. Add a simple task/process structure for the first user task
+5. Add a proper copy_to_user / copy_from_user utility layer outside syscall.cpp
 
 
 NEXT - USER MEMORY / LOADING

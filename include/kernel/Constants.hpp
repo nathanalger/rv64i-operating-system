@@ -1,0 +1,7 @@
+#pragma once
+#include <cstdint>
+constexpr uint64_t USER_CODE_VIRTUAL_BASE = 0x0000000000400000ULL;
+constexpr uint64_t USER_STACK_VIRTUAL_BASE = 0x0000000000410000ULL;
+constexpr uint64_t USER_TEXT_START = USER_CODE_VIRTUAL_BASE;
+constexpr uint64_t USER_STACK_TOP = 0x0000003FFFFFF000ULL;
+constexpr uint64_t USER_STACK_SIZE = 4096;

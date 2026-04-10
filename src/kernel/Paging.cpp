@@ -2,7 +2,7 @@
 #include "DTB.hpp"
 #include "CSR.hpp"
 #include "PagingTests.hpp"
-#include "AddressSpace.hpp"
+#include "AddressMapping.hpp"
 
 extern "C" char __bss_start[];
 extern "C" char __bss_end[];
@@ -392,9 +392,6 @@ bool paging_init(PageTable *&root,
    {
       return false;
    }
-
-   // Utility::test_page_walker(root);
-   // If you re-enable this before satp, call paging_query_early() inside it.
 
    const uint64_t root_phys = reinterpret_cast<uint64_t>(root);
    const uint64_t satp_value = make_satp_sv39(root_phys);
